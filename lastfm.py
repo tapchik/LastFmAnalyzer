@@ -12,6 +12,9 @@ class LastFm:
 
     def __init__(self, assets_file_path: str):
         """Accepts `assets_file_path` as a path to `assets.yml` file with fields `api_key` and `user_id`"""
+        self.api_key: str
+        self.user_id: str
+        self.recent_tracks: dict = {}
         self._read_assets(assets_file_path)
 
     def get_recent_tracks(self, date_from: str = None, date_to: str = None) -> dict:
@@ -21,9 +24,13 @@ class LastFm:
             request = self.template_request_recent_tracks_period(epoch_date_from, epoch_date_to)
         else:
             request = self.template_request_recent_tracks()
-        recent_tracks = self._send_request(request)
-        return recent_tracks['recenttracks']['track']
+        self.recent_tracks = self._send_request(request)
+        return self.recent_tracks['recenttracks']['track']
 
+    def accumulate(self):
+        # TODO: return counter
+        t = self.recent_tracks
+        return "yes"
 
     def _read_assets(self, file_path: str) -> dict:
         """Retrieving API_KEY for last fm"""
