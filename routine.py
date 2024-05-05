@@ -1,6 +1,6 @@
 import lastfm
 
-LastFm = lastfm.LastFm()
+LastFm = lastfm.LastFm('assets.yml')
 
 COUNTER = {}
 
