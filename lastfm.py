@@ -1,6 +1,7 @@
 import yaml
 import requests
 from time_recognition import date_to_epoch_timestamp
+import datetime
 
 DOMAIN = 'ws.audioscrobbler.com'
 API_KEY: str
@@ -24,13 +25,22 @@ class LastFm:
             request = self.template_request_recent_tracks_period(epoch_date_from, epoch_date_to)
         else:
             request = self.template_request_recent_tracks()
-        self.recent_tracks = self._send_request(request)
-        return self.recent_tracks['recenttracks']['track']
+        self.recent_tracks = self._send_request(request)['recenttracks']['track']
+        return self.recent_tracks
 
     def accumulate(self):
         # TODO: return counter
-        t = self.recent_tracks
-        return "yes"
+        albums: dict[str, dict[str, int]] = {}
+        for scrobble in self.recent_tracks:
+            if 'date' not in scrobble: continue
+            album = scrobble['album']['#text']
+            day_uts = datetime.datetime.utcfromtimestamp(int(scrobble['date']['uts']))
+            day = day_uts.strftime('%Y-%m-%d')
+            if album not in albums: albums[album] = {}
+            if day not in albums[album]: albums[album][day] = 0
+            print(album, day, '1')
+            albums[album][day] += 1
+        return albums
 
     def _read_assets(self, file_path: str) -> dict:
         """Retrieving API_KEY for last fm"""
