@@ -31,10 +31,10 @@ class LastFm:
         if date_from is not None and date_to is not None:
             epoch_date_from = date_to_epoch_timestamp(date_from)
             epoch_date_to = date_to_epoch_timestamp(date_to)
-            request = self.template_request_recent_tracks_period(epoch_date_from, epoch_date_to)
+            _recent_tracks = self._get_recent_tracks(epoch_date_from, epoch_date_to)
         else:
-            request = self.template_request_recent_tracks()
-        self._recent_tracks = self._send_request(request)['recenttracks']['track']
+            _recent_tracks = self._get_recent_tracks()
+        self._recent_tracks = _recent_tracks['recenttracks']['track']
         return self._recent_tracks
 
     def accumulate(self):
@@ -59,27 +59,30 @@ class LastFm:
             self.user_id = assets['user']
         return assets
 
-    def _send_request(self, request):
+    def _get_recent_tracks(self, date_from: int = None, date_to: int = None) -> dict[dict]:
+        if date_from is None and date_to is None:
+            request = ('http://' + DOMAIN
+                       + '/2.0/?method=user.getRecentTracks'
+                       + f'&api_key={self.api_key}'
+                       + f'&user={self.user_id}'
+                       + '&format=json')
+        elif date_from is not None and date_to is not None:
+            request = ('http://' + DOMAIN
+                       + '/2.0/?method=user.getRecentTracks'
+                       + f'&api_key={self.api_key}'
+                       + f'&user={self.user_id}'
+                       + '&format=json'
+                       + f'&from={date_from}'
+                       + f'&to={date_to}')
+        else:
+            raise Exception()
+        response = self._send_request(request)
+        return response
+
+    def _send_request(self, request: str):
         response = requests.get(request)
         recent_tracks = response.json()
         return recent_tracks
-
-    def template_request_recent_tracks(self):
-        return ('http://' + DOMAIN
-                + '/2.0/?method=user.getRecentTracks'
-                + f'&api_key={self.api_key}'
-                + f'&user={self.user_id}'
-                + '&format=json')
-
-    def template_request_recent_tracks_period(self, date_from: int, date_to: int):
-        """Dates accepted as epoch timestamps"""
-        return ('http://' + DOMAIN
-                + '/2.0/?method=user.getRecentTracks'
-                + f'&api_key={self.api_key}'
-                + f'&user={self.user_id}'
-                + '&format=json'
-                + f'&from={date_from}'
-                + f'&to={date_to}')
 
 
 if __name__ == '__main__':
