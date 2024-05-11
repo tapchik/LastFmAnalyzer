@@ -2,6 +2,7 @@ import yaml
 import requests
 from time_recognition import date_to_epoch_timestamp
 import datetime
+from models.scrobble import Scrobble
 
 DOMAIN = 'ws.audioscrobbler.com'
 API_KEY: str
@@ -13,10 +14,18 @@ class LastFm:
 
     def __init__(self, assets_file_path: str):
         """Accepts `assets_file_path` as a path to `assets.yml` file with fields `api_key` and `user_id`"""
-        self.api_key: str
-        self.user_id: str
-        self.recent_tracks: dict = {}
+        self.api_key: str | None = None
+        self.user_id: str | None = None
+        self._recent_tracks: dict[dict] = {}
         self._read_assets(assets_file_path)
+
+    @property
+    def scrobbles(self) -> list[Scrobble]:
+        scrobbles: list[Scrobble] = []
+        for item in self._recent_tracks:
+            scrobbles += [Scrobble(item)]
+        return scrobbles
+
 
     def get_recent_tracks(self, date_from: str = None, date_to: str = None) -> dict:
         if date_from is not None and date_to is not None:
@@ -25,13 +34,13 @@ class LastFm:
             request = self.template_request_recent_tracks_period(epoch_date_from, epoch_date_to)
         else:
             request = self.template_request_recent_tracks()
-        self.recent_tracks = self._send_request(request)['recenttracks']['track']
-        return self.recent_tracks
+        self._recent_tracks = self._send_request(request)['recenttracks']['track']
+        return self._recent_tracks
 
     def accumulate(self):
         # TODO: return counter
         albums: dict[str, dict[str, int]] = {}
-        for scrobble in self.recent_tracks:
+        for scrobble in self._recent_tracks:
             if 'date' not in scrobble: continue
             album = scrobble['album']['#text']
             day_uts = datetime.datetime.utcfromtimestamp(int(scrobble['date']['uts']))
