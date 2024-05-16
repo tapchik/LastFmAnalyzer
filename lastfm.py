@@ -27,15 +27,18 @@ class LastFm:
         return scrobbles
 
 
-    def get_recent_tracks(self, date_from: str = None, date_to: str = None) -> dict:
+    def get_recent_tracks(self, date_from: str = None, date_to: str = None) -> list[Scrobble]:
         if date_from is not None and date_to is not None:
             epoch_date_from = date_to_epoch_timestamp(date_from)
             epoch_date_to = date_to_epoch_timestamp(date_to)
             _recent_tracks = self._get_recent_tracks(epoch_date_from, epoch_date_to)
         else:
             _recent_tracks = self._get_recent_tracks()
-        self._recent_tracks = _recent_tracks['recenttracks']['track']
-        return self._recent_tracks
+        # zip up json as into a list of Scrobble
+        result: list[Scrobble] = []
+        for item in _recent_tracks['recenttracks']['track']:
+            result += [Scrobble(item)]
+        return result
 
     def accumulate(self):
         # TODO: return counter
@@ -60,34 +63,30 @@ class LastFm:
         return assets
 
     def _get_recent_tracks(self, date_from: int = None, date_to: int = None) -> dict[dict]:
-        if date_from is None and date_to is None:
-            request = ('http://' + DOMAIN
-                       + '/2.0/?method=user.getRecentTracks'
-                       + f'&api_key={self.api_key}'
-                       + f'&user={self.user_id}'
-                       + '&format=json')
-        elif date_from is not None and date_to is not None:
-            request = ('http://' + DOMAIN
-                       + '/2.0/?method=user.getRecentTracks'
-                       + f'&api_key={self.api_key}'
-                       + f'&user={self.user_id}'
-                       + '&format=json'
-                       + f'&from={date_from}'
-                       + f'&to={date_to}')
-        else:
-            raise Exception()
+        request = ('http://' + DOMAIN
+                   + '/2.0/?method=user.getRecentTracks'
+                   + f'&api_key={self.api_key}'
+                   + f'&user={self.user_id}'
+                   + f'&limit=200'
+                   + f'&format=json')
+        if date_from is not None:
+            request += f'&from={date_from}'
+        if date_to is not None:
+            request += f'&to={date_to}'
         response = self._send_request(request)
         return response
 
     def _send_request(self, request: str):
         response = requests.get(request)
+        if response.ok is False:
+            raise Exception(f"Response has status code {response.status_code}. Reason: {response.reason}. Text: {response.text}")
         recent_tracks = response.json()
         return recent_tracks
 
 
 if __name__ == '__main__':
 
-    LastFm = LastFm('assets.yml')
+    LastFm = LastFm('input/assets.yml')
     recent_tracks = LastFm.get_recent_tracks()
 
     i = 1

@@ -1,20 +1,19 @@
 import lastfm
 
-LastFm = lastfm.LastFm('assets.yml')
+LastFm = lastfm.LastFm('input/assets.yml')
 
 COUNTER = {}
 
-tracks = LastFm.get_recent_tracks('2024-04-24', '2024-04-25')
+scrobbles = LastFm.get_recent_tracks('2024-05-01', '2024-05-31')
+
+for sc in scrobbles:
+    if sc.album not in COUNTER:
+        COUNTER[sc.album] = {}
+    if sc.date not in COUNTER[sc.album]:
+        COUNTER[sc.album][sc.date] = 0
+    COUNTER[sc.album][sc.date] += 1
 
 i = 1
-for track in tracks:
-    artist = track['artist']['#text']
-    album = track['album']['#text']
-    song = track['name']
-
-    print(f"{i}. {artist} – {album} – {song}")
-    if album not in COUNTER: COUNTER[album] = 0
-    COUNTER[album] += 1
+for album, scrobs in COUNTER.items():
+    print(f"{i}. {album} – {scrobs}")
     i += 1
-
-print(COUNTER)
