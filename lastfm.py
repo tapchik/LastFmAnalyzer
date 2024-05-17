@@ -26,18 +26,21 @@ class LastFm:
             scrobbles += [Scrobble(item)]
         return scrobbles
 
-
     def get_recent_tracks(self, date_from: str = None, date_to: str = None) -> list[Scrobble]:
-        if date_from is not None and date_to is not None:
-            epoch_date_from = date_to_epoch_timestamp(date_from)
-            epoch_date_to = date_to_epoch_timestamp(date_to)
-            _recent_tracks = self._get_recent_tracks(epoch_date_from, epoch_date_to)
-        else:
-            _recent_tracks = self._get_recent_tracks()
+        if date_from is not None:
+            date_from = date_to_epoch_timestamp(date_from)
+        if date_to is not None:
+            date_to = date_to_epoch_timestamp(date_to)
         # zip up json as into a list of Scrobble
         result: list[Scrobble] = []
-        for item in _recent_tracks['recenttracks']['track']:
-            result += [Scrobble(item)]
+        current_page = 1
+        total_pages = 1
+        while current_page <= total_pages:
+            _recent_tracks = self._get_recent_tracks(date_from, date_to, current_page)
+            total_pages = int(_recent_tracks['recenttracks']['@attr']['totalPages'])
+            current_page += 1
+            for item in _recent_tracks['recenttracks']['track']:
+                result += [Scrobble(item)]
         return result
 
     def accumulate(self):
@@ -62,11 +65,12 @@ class LastFm:
             self.user_id = assets['user']
         return assets
 
-    def _get_recent_tracks(self, date_from: int = None, date_to: int = None) -> dict[dict]:
+    def _get_recent_tracks(self, date_from: int = None, date_to: int = None, page: int = 1) -> dict[dict]:
         request = ('http://' + DOMAIN
                    + '/2.0/?method=user.getRecentTracks'
                    + f'&api_key={self.api_key}'
                    + f'&user={self.user_id}'
+                   + f'&page={page}'
                    + f'&limit=200'
                    + f'&format=json')
         if date_from is not None:
@@ -91,9 +95,9 @@ if __name__ == '__main__':
 
     i = 1
     for track in recent_tracks:
-        artist = track['artist']['#text']
-        album = track['album']['#text']
-        song = track['name']
+        artist = track.artist
+        album = track.album
+        song = track.title
 
         print(f"{i}. {artist} – {album} – {song}")
         if album not in COUNTER: COUNTER[album] = 0
