@@ -58,7 +58,7 @@ class LastFm:
 
 if __name__ == '__main__':
 
-    LastFm = LastFm('assets.yml')
+    LastFm = LastFm('input/assets.yml')
     recent_tracks = LastFm.get_recent_tracks()
 
     i = 1
